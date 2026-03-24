@@ -2,7 +2,7 @@ name: Récupération degrés-jours Neuchâtel
 
 on:
   schedule:
-    - cron: '0 6 1 * *'
+    - cron: '*/5 * * * *'   # toutes les 5 min (minimum GitHub)
   workflow_dispatch:
 
 jobs:
