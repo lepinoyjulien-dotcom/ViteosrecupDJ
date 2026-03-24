@@ -2,28 +2,43 @@ name: Récupération degrés-jours Neuchâtel
 
 on:
   schedule:
-    - cron: '*/5 * * * *'   # toutes les 5 min (minimum GitHub)
+    - cron: '0 6 * * 1'   # chaque lundi à 6h UTC
   workflow_dispatch:
 
 jobs:
   download:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Télécharger DJ.xlsx
+      - name: Télécharger et vérifier le hash
         run: |
           mkdir -p data
           curl -L "https://www5.ne.ch/SENE-air/DJ.xlsx" \
-               -o data/DJ.xlsx \
-               --fail --retry 3
+               -o data/DJ_new.xlsx --fail --retry 3
+
+          NEW_HASH=$(md5sum data/DJ_new.xlsx | cut -d' ' -f1)
+          OLD_HASH=""
+          [ -f data/.hash ] && OLD_HASH=$(cat data/.hash)
+
+          if [ "$NEW_HASH" != "$OLD_HASH" ]; then
+            echo "Fichier modifié — mise à jour"
+            mv data/DJ_new.xlsx data/DJ.xlsx
+            echo "$NEW_HASH" > data/.hash
+            echo "FILE_CHANGED=true" >> $GITHUB_ENV
+          else
+            echo "Fichier identique — rien à faire"
+            rm data/DJ_new.xlsx
+            echo "FILE_CHANGED=false" >> $GITHUB_ENV
+          fi
 
       - name: Commit si changement
+        if: env.FILE_CHANGED == 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/DJ.xlsx
-          git diff --cached --quiet || \
-            git commit -m "data: DJ.xlsx $(date +'%Y-%m-%d')"
+          git add data/DJ.xlsx data/.hash
+          git commit -m "data: DJ.xlsx mis à jour $(date +'%Y-%m-%d')"
           git push
