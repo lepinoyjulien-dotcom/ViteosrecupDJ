@@ -12,8 +12,9 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Télécharger DJ.xlsx
+- name: Télécharger DJ.xlsx
         run: |
+          mkdir -p data
           curl -L "https://www5.ne.ch/SENE-air/DJ.xlsx" \
                -o data/DJ.xlsx \
                --fail --retry 3
